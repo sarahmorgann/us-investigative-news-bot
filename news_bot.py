@@ -9,22 +9,22 @@ GROUP_ID = 1020
 USER_ID  = 14289
 
 FEEDS = [
-    ("The Intercept",          "https://theintercept.com/feed/?rss"),
-    ("MuckRock",               "https://www.muckrock.com/news/archives/feed/"),
-    ("WhoWhatWhy",             "https://whowhatwhy.org/feed/"),
-    ("Bellingcat",             "https://www.bellingcat.com/feed/"),
-    ("Democracy Now",          "https://www.democracynow.org/democracynow.rss"),
-    ("The Appeal",             "https://theappeal.org/feed/"),
-    ("Reveal News",            "https://revealnews.org/feed/"),
-    ("Documented",             "https://documentedny.com/feed/"),
-    ("Just the News",          "https://justthenews.com/rss.xml"),
+    ("The Intercept", "https://theintercept.com/feed/?rss"),
+    ("MuckRock", "https://www.muckrock.com/news/archives/feed/"),
+    ("WhoWhatWhy", "https://whowhatwhy.org/feed/"),
+    ("Bellingcat", "https://www.bellingcat.com/feed/"),
+    ("Democracy Now", "https://www.democracynow.org/democracynow.rss"),
+    ("The Appeal", "https://theappeal.org/feed/"),
+    ("Reveal News", "https://revealnews.org/feed/"),
+    ("Documented", "https://documentedny.com/feed/"),
+    ("Just the News", "https://justthenews.com/rss.xml"),
     ("Washington Free Beacon", "https://freebeacon.com/feed/"),
-    ("Texas Tribune",          "https://www.texastribune.org/feed/"),
-    ("Radar Online",           "https://radaronline.com/feed/"),
-    ("Court Watch",            "https://courtwatch.substack.com/feed"),
-    ("Law and Crime",          "https://lawandcrime.com/feed/"),
-    ("ProPublica",             "https://www.propublica.org/feeds/propublica/main"),
-    ("The Markup",             "https://themarkup.org/feeds/rss.xml"),
+    ("Texas Tribune", "https://www.texastribune.org/feed/"),
+    ("Radar Online", "https://radaronline.com/feed/"),
+    ("Court Watch", "https://courtwatch.substack.com/feed"),
+    ("Law and Crime", "https://lawandcrime.com/feed/"),
+    ("ProPublica", "https://www.propublica.org/feeds/propublica/main"),
+    ("The Markup", "https://themarkup.org/feeds/rss.xml"),
 ]
 
 INTROS = [
@@ -209,7 +209,6 @@ OUTROS = [
     "",
 ]
 
-
 def is_recent(entry, hours=48):
     for attr in ("published_parsed", "updated_parsed"):
         t = getattr(entry, attr, None)
@@ -218,21 +217,36 @@ def is_recent(entry, hours=48):
             return (datetime.now(timezone.utc) - pub) < timedelta(hours=hours)
     return True
 
+_session = None
+_nonce   = None
+
 def get_token():
-    r = requests.post(f"{BB_URL}/wp-json/jwt-auth/v1/token",
-        json={"username": BB_USER, "password": BB_PASS}, timeout=30)
-    r.raise_for_status()
-    return r.json()["token"]
+    global _session, _nonce
+    _session = requests.Session()
+    _session.get(f"{BB_URL}/wp-login.php", timeout=30)
+    resp = _session.post(f"{BB_URL}/wp-login.php", data={
+        "log": BB_USER, "pwd": BB_PASS,
+        "wp-submit": "Log In",
+        "redirect_to": f"{BB_URL}/wp-admin/",
+        "testcookie": "1",
+    }, timeout=30, allow_redirects=True)
+    if not any("wordpress_logged_in" in k for k in _session.cookies.keys()):
+        raise Exception(f"WP login failed (status={resp.status_code}, url={resp.url})")
+    page = _session.get(f"{BB_URL}/", timeout=30)
+    m = re.search(r'rest_nonce["\'\']?\s*:\s*["\'\']([a-f0-9]+)["\'\']', page.text)
+    if not m:
+        m = re.search(r'"nonce"\s*:\s*"([a-f0-9]+)"', page.text)
+    _nonce = m.group(1) if m else None
+    return "cookie_auth"
 
 def fetch_posted(token, limit=60):
-    headers = {"Authorization": f"Bearer {token}"}
+    headers = {"X-WP-Nonce": _nonce} if _nonce else {}
     try:
-        r = requests.get(f"{BB_URL}/wp-json/buddyboss/v1/activity",
+        r = _session.get(f"{BB_URL}/wp-json/buddyboss/v1/activity",
             params={"group_id": GROUP_ID, "per_page": limit},
             headers=headers, timeout=30)
         seen = set()
         for item in r.json():
-            from bs4 import BeautifulSoup
             soup = BeautifulSoup(item.get("content", {}).get("rendered", ""), "html.parser")
             txt = soup.get_text().strip()[:120]
             seen.add(hashlib.md5(txt.lower().encode()).hexdigest())
@@ -241,8 +255,10 @@ def fetch_posted(token, limit=60):
         return set()
 
 def post_activity(token, content):
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-    r = requests.post(f"{BB_URL}/wp-json/buddyboss/v1/activity",
+    headers = {"Content-Type": "application/json"}
+    if _nonce:
+        headers["X-WP-Nonce"] = _nonce
+    r = _session.post(f"{BB_URL}/wp-json/buddyboss/v1/activity",
         json={"content": content, "group_id": GROUP_ID, "type": "activity_update"},
         headers=headers, timeout=30)
     r.raise_for_status()
@@ -251,33 +267,23 @@ def post_activity(token, content):
 def build_post(title, summary, link):
     intro = random.choice(INTROS)
     outro = random.choice(OUTROS)
-
-    # Random punctuation style
     drop_punct = random.random() < 0.35
     lower_start = random.random() < 0.45
-
     def humanize(s):
-        if not s:
-            return s
-        if lower_start:
-            s = s[0].lower() + s[1:] if len(s) > 1 else s.lower()
-        if drop_punct and s and s[-1] in '.,:':
-            s = s[:-1]
+        if not s: return s
+        if lower_start: s = s[0].lower() + s[1:] if len(s) > 1 else s.lower()
+        if drop_punct and s and s[-1] in ".,: ": s = s[:-1]
         return s
-
     parts = []
-    if intro:
-        parts.append(humanize(intro))
+    if intro: parts.append(humanize(intro))
     parts.append(f'"{title}"')
     if summary:
-        from bs4 import BeautifulSoup
         clean = BeautifulSoup(summary, "html.parser").get_text()[:220].strip()
-        if clean:
-            parts.append(clean)
+        if clean: parts.append(clean)
     parts.append(link)
-    if outro:
-        parts.append(humanize(outro))
+    if outro: parts.append(humanize(outro))
     return "\n".join(parts)
+
 def run():
     token = get_token()
     seen = fetch_posted(token)
@@ -286,20 +292,16 @@ def run():
         try:
             feed = feedparser.parse(url)
             for entry in feed.entries[:5]:
-                if not is_recent(entry):
-                    continue
-                title   = entry.get("title", "").strip()
+                if not is_recent(entry): continue
+                title = entry.get("title", "").strip()
                 summary = entry.get("summary", "")[:300]
-                link    = entry.get("link", "")
-                if not title or not link:
-                    continue
+                link = entry.get("link", "")
+                if not title or not link: continue
                 key = hashlib.md5(title.lower().strip().encode()).hexdigest()
-                if key in seen:
-                    continue
+                if key in seen: continue
                 items.append((source, title, summary, link, key))
         except Exception as e:
             print(f"[WARN] {source}: {e}")
-
     random.shuffle(items)
     posted = 0
     for source, title, summary, link, key in items[:4]:
@@ -312,7 +314,6 @@ def run():
             time.sleep(random.randint(25, 70))
         except Exception as e:
             print(f"[ERR] {e}")
-
     print(f"[DONE] Posted {posted}")
 
 if __name__ == "__main__":
