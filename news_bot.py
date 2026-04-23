@@ -2,9 +2,9 @@ import os, re, time, random, hashlib, feedparser, requests
 from datetime import datetime, timezone, timedelta
 from bs4 import BeautifulSoup
 
-BB_URL   = os.environ["BB_URL"]
-BB_USER  = os.environ["BB_USER"]
-BB_PASS  = os.environ["BB_PASS"]
+BB_URL   = os.environ["BB_URL2"]
+BB_USER  = os.environ["BB_USER2"]
+BB_PASS  = os.environ["BB_PASS2"]
 GROUP_ID = 1020
 USER_ID  = 14289
 
