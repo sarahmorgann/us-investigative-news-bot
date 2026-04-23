@@ -25,6 +25,15 @@ FEEDS = [
     ("Law and Crime", "https://lawandcrime.com/feed/"),
     ("ProPublica", "https://www.propublica.org/feeds/propublica/main"),
     ("The Markup", "https://themarkup.org/feeds/rss.xml"),
+    ("Natural News",              "https://www.naturalnews.com/rss.xml"),
+    ("Childrens Health Defense",  "https://childrenshealthdefense.org/defender/feed/"),
+    ("Mercola",                   "https://articles.mercola.com/rss.aspx"),
+    ("Global Research",           "https://www.globalresearch.ca/feed"),
+    ("Activist Post",             "https://www.activistpost.com/feed"),
+    ("Waking Times",              "https://www.wakingtimes.com/feed/"),
+    ("ZeroHedge",                 "https://feeds.feedburner.com/zerohedge/feed"),
+    ("Corbett Report",            "https://www.corbettreport.com/feed/"),
+    ("Epoch Health",              "https://www.theepochtimes.com/c/health/feed"),
 ]
 
 INTROS = [
