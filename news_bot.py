@@ -50,9 +50,98 @@ INTROS = [
     "worth reading before it disappears",
     "came across this and had to share",
     "nobody in the mainstream is touching this",
+    "this is exactly what gets buried",
+    "pay attention to this one",
+    "sharing because i think people need to see this",
+    "they wont cover this so im sharing it",
+    "found this independently",
+    "big story, small coverage",
+    "seeing this nowhere in mainstream news",
+    "this is why you follow independent sources",
+    "not a peep about this from major outlets",
+    "this matters and its not getting coverage",
+    "real journalism still exists",
+    "solid reporting on something major",
+    "the press isnt covering this",
+    "thought this was important enough to share",
+    "posting because this shouldnt be ignored",
+    "if you only get news from tv you wont see this",
+    "independent sources are all over this",
+    "this story is being ignored",
+    "worth your time to read",
+    "found through independent reporting",
+    "nobody wants to touch this",
+    "its buried but its important",
+    "sharing for awareness",
+    "following the independent reporters on this one",
+    "this wont be on the evening news",
+    "passing this along",
+    "saw this and had to share",
+    "not seeing any mainstream coverage",
+    "worth following",
+    "this is the news they skip",
+    "important and underreported",
+    "dug this up",
+    "serious story, minimal coverage",
+    "im sharing this because its not getting out",
+    "just found this",
+    "this one is getting buried",
+    "real reporting on a real issue",
+    "thought this was worth spreading",
+    "sharing so it doesnt get lost",
+    "good investigative piece",
+    "this should be bigger news",
+    "cant believe this isnt everywhere",
+    "worth the read",
+    "passing this on",
+    "saw it, sharing it",
+    "this is huge and no one is saying anything",
+    "major story, zero coverage",
+    "came across this today",
+    "sharing for the community",
+    "this one matters",
+    "keeping an eye on this",
+    "saw this and thought you all should know",
+    "found this outside of mainstream",
+    "this is getting ignored",
+    "important reporting",
+    "no one is covering this and they should be",
+    "reading between the lines here",
+    "this is why independent media matters",
+    "the networks wont touch this",
+    "sharing from independent sources",
+    "came across this in independent reporting",
+    "not on any major network",
+    "quietly happening and barely covered",
+    "sharing what the mainstream skips",
+    "this is the kind of thing that gets buried fast",
+    "wont see this trending anywhere",
+    "pulling this from independent reporting",
     "",
     "",
     "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "news - this isnt getting coverage",
+    "news worth sharing",
+    "national news that got buried",
+    "news you wont see on tv",
+    "news from independent sources",
+    "news the mainstream skipped",
+    "news - this matters",
+    "news worth reading",
+    "news - found this outside mainstream",
+    "news that deserves attention",
+    "news - nobody is reporting on this",
+    "news from investigative reporters",
+    "news they dont want trending",
+    "news - underreported",
+    "news worth knowing",
 ]
 
 OUTROS = [
@@ -69,10 +158,57 @@ OUTROS = [
     "do your own research too",
     "the full story is worth reading",
     "pay attention to this one",
+    "follow the link for more",
+    "read it yourself",
+    "this is worth your time",
+    "follow the reporting",
+    "more at the link",
+    "full piece at the link",
+    "go read it",
+    "check the link",
+    "this is ongoing",
+    "keep an eye on this",
+    "stay informed",
+    "share if you think others should see this",
+    "spread the word",
+    "dont let this get buried",
+    "pass it on",
+    "hope this is useful",
+    "sharing for awareness",
+    "the full story is at the link",
+    "this deserves to be read",
+    "tell me what you think",
+    "this is real reporting",
+    "support independent journalism",
+    "read the original source",
+    "a lot more context in the full article",
+    "this is just the surface",
+    "there is more to this story",
+    "stay tuned on this one",
+    "this is developing",
+    "follow closely",
+    "glad this got reported",
+    "took guts to publish this",
+    "independent press doing what it should",
+    "this is what journalism is supposed to look like",
+    "more people need to see this",
+    "not going to pretend i know all the details",
+    "read it and decide for yourself",
+    "make of it what you will",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
     "",
     "",
     "",
 ]
+
 
 def is_recent(entry, hours=48):
     for attr in ("published_parsed", "updated_parsed"):
@@ -115,9 +251,23 @@ def post_activity(token, content):
 def build_post(title, summary, link):
     intro = random.choice(INTROS)
     outro = random.choice(OUTROS)
+
+    # Random punctuation style
+    drop_punct = random.random() < 0.35
+    lower_start = random.random() < 0.45
+
+    def humanize(s):
+        if not s:
+            return s
+        if lower_start:
+            s = s[0].lower() + s[1:] if len(s) > 1 else s.lower()
+        if drop_punct and s and s[-1] in '.,:':
+            s = s[:-1]
+        return s
+
     parts = []
     if intro:
-        parts.append(intro)
+        parts.append(humanize(intro))
     parts.append(f'"{title}"')
     if summary:
         from bs4 import BeautifulSoup
@@ -126,9 +276,8 @@ def build_post(title, summary, link):
             parts.append(clean)
     parts.append(link)
     if outro:
-        parts.append(outro)
+        parts.append(humanize(outro))
     return "\n".join(parts)
-
 def run():
     token = get_token()
     seen = fetch_posted(token)
