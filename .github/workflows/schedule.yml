@@ -1,7 +1,12 @@
 name: Post National Investigative News
 on:
   schedule:
-    - cron: '0 */4 * * *'
+    - cron: '37 1 * * *'
+    - cron: '14 5 * * *'
+    - cron: '52 9 * * *'
+    - cron: '28 13 * * *'
+    - cron: '09 17 * * *'
+    - cron: '44 21 * * *'
   workflow_dispatch:
 jobs:
   post:
