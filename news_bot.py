@@ -268,7 +268,7 @@ def post_activity(token, content):
     if _nonce:
         headers["X-WP-Nonce"] = _nonce
     r = _session.post(f"{BB_URL}/wp-json/buddyboss/v1/activity",
-        json={"content": content, "type": "activity_update", "primary_item_id": GROUP_ID, "component": "groups"},
+        json={"content": content, "type": "activity_update", "primary_item_id": GROUP_ID, "component": "groups", "activity_type": "community"},
         headers=headers, timeout=30)
     r.raise_for_status()
     return r.json()
